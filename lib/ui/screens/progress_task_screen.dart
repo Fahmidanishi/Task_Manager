@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:task_manager/data/models/network_response.dart';
-import 'package:task_manager/data/models/task_list_model.dart';
-import 'package:task_manager/data/models/task_model.dart';
-import 'package:task_manager/data/services/network_caller.dart';
-import 'package:task_manager/data/utils/urls.dart';
-import 'package:task_manager/ui/widgets/centered_circular_progress_indicator.dart';
+import 'package:get/get.dart';
+import 'package:task_manager/ui/controllers/progress_task_controller.dart';
+import 'package:task_manager/ui/utills/app_padding.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
-import 'package:task_manager/ui/widgets/task_card.dart';
-import 'package:task_manager/ui/screens/add_new_task_screen.dart';
+import 'package:task_manager/ui/widgets/task_card_section.dart';
+
+import '../widgets/tm_process_indicator.dart';
+
 
 class ProgressTaskScreen extends StatefulWidget {
   const ProgressTaskScreen({super.key});
@@ -17,78 +16,62 @@ class ProgressTaskScreen extends StatefulWidget {
 }
 
 class _ProgressTaskScreenState extends State<ProgressTaskScreen> {
-  bool _getProcessTaskListInProcess = false;
-  List<TaskModel> _processTaskList = [];
+  final ProgressTaskController _progressTaskController =
+  Get.find<ProgressTaskController>();
 
   @override
   void initState() {
     super.initState();
-    _getProcessTaskList();
+    _getProgressTask();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Visibility(
-      visible: !_getProcessTaskListInProcess,
-      replacement: const CenteredCircularProgressIndicator(),
-      child: RefreshIndicator(
-        onRefresh: _getProcessTaskList,
-        child: _processTaskList.isEmpty
-            ? const Center(child: Text('No tasks in progress'))
-            : ListView.separated(
-          itemCount: _processTaskList.length,
-          itemBuilder: (context, index) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: TaskCard(
-                taskModel: _processTaskList[index],
-                onRefreshList: _getProcessTaskList,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          _getProgressTask();
+        },
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(
+              AppPadding.defaultPadding,
+            ),
+            child: Expanded(
+              child: GetBuilder<ProgressTaskController>(
+                builder: (controller) {
+                  return Visibility(
+                    visible: !controller.inProgress,
+                    replacement: const TMProgressIndicator(),
+                    child: ListView.separated(
+                      itemCount: controller.taskList.length,
+                      itemBuilder: (context, index) {
+                        return TaskCardSection(
+                          taskModel: controller.taskList[index],
+                          onRefresh: _getProgressTask,
+                        );
+                      },
+                      separatorBuilder: (context, index) {
+                        return const SizedBox(
+                          height: 16,
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
-            );
-          },
-          separatorBuilder: (context, index) {
-            return const SizedBox(height: 8);
-          },
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _getProcessTaskList() async {
-    setState(() {
-      _processTaskList.clear();
-      _getProcessTaskListInProcess = true;
-    });
-
-    final NetworkResponse response =
-    await NetworkCaller.getRequest(url: Urls.progressTaskList);
-
-    if (response.isSuccess) {
-      final TaskListModel taskListModel =
-      TaskListModel.fromJson(response.responseData);
-
-      setState(() {
-        _processTaskList = taskListModel.TaskList ?? [];
-        _getProcessTaskListInProcess = false;
-      });
-    } else {
-      setState(() => _getProcessTaskListInProcess = false);
-      showSnackBarMessage(context, 'There seems to be a mistake.', true);
-    }
-  }
-
-  Future<void> _onTapAddFAB() async {
-    // Navigate to AddNewTaskScreen and refresh the task list if a new task is added
-    final bool? shouldRefresh = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AddNewTaskScreen(),
-      ),
-    );
-
-    // Refresh the task list if a new task was added
-    if (shouldRefresh == true) {
-      _getProcessTaskList();
+  Future<void> _getProgressTask() async {
+    final bool result = await _progressTaskController.getProgressTask();
+    if (result == false) {
+      snackMassage(true, _progressTaskController.errorMessage!);
     }
   }
 }

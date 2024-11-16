@@ -1,72 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:task_manager/data/models/network_response.dart';
-import 'package:task_manager/data/models/task_list_model.dart';
-import 'package:task_manager/data/models/task_model.dart';
-import 'package:task_manager/data/services/network_caller.dart';
-import 'package:task_manager/data/utils/urls.dart';
-import 'package:task_manager/ui/widgets/centered_circular_progress_indicator.dart';
+import 'package:get/get.dart';
+import 'package:task_manager/ui/controllers/cancelled_task_controller.dart';
+import 'package:task_manager/ui/utills/app_padding.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
-import 'package:task_manager/ui/widgets/task_card.dart';
+import 'package:task_manager/ui/widgets/task_card_section.dart';
 
-class CancelledTaskScreen extends StatefulWidget {
-  const CancelledTaskScreen({super.key});
+import '../widgets/tm_process_indicator.dart';
+
+
+class CancelTaskScreen extends StatefulWidget {
+  const CancelTaskScreen({super.key});
 
   @override
-  State<CancelledTaskScreen> createState() => _CancelledTaskScreenState();
+  State<CancelTaskScreen> createState() => _CancelTaskScreenState();
 }
 
-class _CancelledTaskScreenState extends State<CancelledTaskScreen> {
-  bool _getCancelledTaskInProcess = false;
-  List<TaskModel> _cancelledTaskList = [];
+class _CancelTaskScreenState extends State<CancelTaskScreen> {
+  final CancelTaskController _cancelTaskController =
+  Get.find<CancelTaskController>();
 
   @override
   void initState() {
     super.initState();
+    _getCanceledTask();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Visibility(
-      visible: !_getCancelledTaskInProcess,
-      replacement: CenteredCircularProgressIndicator(),
-      child: RefreshIndicator(
-        onRefresh: () async {
-          await _getCancelledTaskList();
-        },
-        child: ListView.separated(
-          itemCount: _cancelledTaskList.length,
-          itemBuilder: (context, index) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: TaskCard(
-                taskModel: _cancelledTaskList[index],
-                onRefreshList: _getCancelledTaskList,
-              ),
-            );
-          },
-          separatorBuilder: (context, index) {
-            return const SizedBox(height: 8);
-          },
-        ),
+    return Padding(
+      padding: EdgeInsets.all(AppPadding.defaultPadding),
+      child: Column(
+        children: [
+          Expanded(
+            child: GetBuilder<CancelTaskController>(builder: (controller) {
+              return Visibility(
+                visible: !controller.inProgress,
+                replacement: const TMProgressIndicator(),
+                child: ListView.separated(
+                  itemCount: _cancelTaskController.taskList.length,
+                  itemBuilder: (context, index) {
+                    return TaskCardSection(
+                        taskModel: _cancelTaskController.taskList[index],
+                        onRefresh: _getCanceledTask);
+                  },
+                  separatorBuilder: (BuildContext context, int index) {
+                    return const SizedBox(
+                      height: 16,
+                    );
+                  },
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _getCancelledTaskList() async {
-    setState(() {});
-
-    final NetworkResponse response =
-        await NetworkCaller.getRequest(url: Urls.cancelledTaskList);
-
-    if (response.isSuccess) {
-      debugPrint('Cancelled Task Response: ${response.responseData}');
-      final TaskListModel taskListModel =
-          TaskListModel.fromJson(response.responseData);
-      setState(() {});
-      debugPrint('Number of Cancelled Tasks: ${_cancelledTaskList.length}');
-    } else {
-      setState(() => _getCancelledTaskInProcess = false);
-      showSnackBarMessage(context, 'There seems to be a mistake.', true);
+  Future<void> _getCanceledTask() async {
+    final bool result = await _cancelTaskController.getCancelTask();
+    if (result == false) {
+      snackMassage(true, _cancelTaskController.errorMessage!);
     }
   }
 }

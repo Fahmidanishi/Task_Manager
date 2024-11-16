@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:task_manager/data/models/task_status_model.dart';
-import 'package:task_manager/data/models/network_response.dart';
-import 'package:task_manager/data/models/task_list_model.dart';
-import 'package:task_manager/data/models/task_model.dart';
-import 'package:task_manager/data/models/task_status_count_model.dart';
-import 'package:task_manager/data/services/network_caller.dart';
-import 'package:task_manager/data/utils/urls.dart';
-import 'package:task_manager/ui/screens/add_new_task_screen.dart';
-import 'package:task_manager/ui/widgets/centered_circular_progress_indicator.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
-import 'package:task_manager/ui/widgets/task_card.dart';
-import 'package:task_manager/ui/widgets/task_summary_card.dart';
+import 'package:get/get.dart';
+import 'package:task_manager/ui/widgets/tm_process_indicator.dart';
 
+import '../controllers/new_task_controller.dart';
+import '../controllers/task_status_controller.dart';
+import '../utills/app_padding.dart';
+import '../widgets/task_card_section.dart';
+import '../widgets/task_summary_card.dart';
+import 'add_new_task_screen.dart';
 
 
 class NewTaskScreen extends StatefulWidget {
@@ -22,128 +19,119 @@ class NewTaskScreen extends StatefulWidget {
 }
 
 class _NewTaskScreenState extends State<NewTaskScreen> {
-  bool _getNewTaskListInProgress = false;
-  bool _getTaskStatusCountListInProgress = false;
-  List<TaskModel> _newTaskList = [];
-  List<TaskStatusModel> _taskStatusCountList = [];
+  final NewTaskController _newTaskController = Get.find<NewTaskController>();
+  final TaskStatusController _taskStatusController =
+  Get.find<TaskStatusController>();
 
   @override
   void initState() {
     super.initState();
-    _getNewTaskList();
-    _getTaskStatusCount();
+    _getNewTask();
+    _getTaskStatus();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: RefreshIndicator(
         onRefresh: () async {
-          _getNewTaskList();
-          _getTaskStatusCount();
+          _getNewTask();
+          _getTaskStatus();
         },
-        child: Column(
-          children: [
-            _buildSummarySection(),
-            Expanded(
-              child: Visibility(
-                visible: !_getNewTaskListInProgress,
-                replacement: const CenteredCircularProgressIndicator(),
-                child: ListView.separated(
-                  itemCount: _newTaskList.length,
-                  itemBuilder: (context, index) {
-                    return TaskCard(
-                      taskModel: _newTaskList[index],
-                      onRefreshList: _getNewTaskList,
+        child: SafeArea(
+          child: Column(
+            //crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: GetBuilder<TaskStatusController>(
+                  builder: (controller) {
+                    return Visibility(
+                      visible: !controller.inProgress,
+                      replacement: const TMProgressIndicator(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 16,
+                        ),
+                        child: Row(
+                          children: controller.taskCountList
+                              .map(
+                                (e) => SummaryCard(taskCountModel: e),
+                          )
+                              .toList(),
+                        ),
+                      ),
                     );
-                  },
-                  separatorBuilder: (context, index) {
-                    return const SizedBox(height: 8);
                   },
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _onTapAddFAB,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildSummarySection() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Visibility(
-        visible: _getTaskStatusCountListInProgress == false,
-        replacement: const CenteredCircularProgressIndicator(),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _getTaskSummaryCardList(),
+              const Divider(),
+              Expanded(
+                child: GetBuilder<NewTaskController>(
+                  builder: (controller) {
+                    return Visibility(
+                      visible: !controller.inProgress,
+                      replacement: const TMProgressIndicator(),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: AppPadding.defaultPadding),
+                        child: ListView.separated(
+                          itemCount: controller.taskList.length,
+                          itemBuilder: (context, index) {
+                            return TaskCardSection(
+                              taskModel: controller.taskList[index],
+                              onRefresh: _getNewTask,
+                            );
+                          },
+                          separatorBuilder: (context, index) {
+                            return const SizedBox(
+                              height: 16,
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
+      floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
-  List<TaskSummaryCard> _getTaskSummaryCardList() {
-    List<TaskSummaryCard> taskSummaryCardList = [];
-    for (TaskStatusModel t in _taskStatusCountList) {
-      taskSummaryCardList.add(TaskSummaryCard(title: t.sId!, count: t.sum! ?? 0));
-    }
-    return taskSummaryCardList;
-  }
-
-  Future<void> _onTapAddFAB() async {
-    // floating action button
-
-    final bool? shouldRefresh = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AddNewTaskScreen(),
+  FloatingActionButton _buildFloatingActionButton() {
+    return FloatingActionButton(
+      onPressed: () async {
+        final bool result = await Get.toNamed(AddNewScreen.name);
+        if (result == true) {
+          _getNewTask();
+        }
+      },
+      elevation: 0,
+      backgroundColor: Colors.grey[600],
+      child: const Icon(
+        Icons.add,
+        color: Colors.white,
       ),
     );
-    if (shouldRefresh == true) {
-      _getNewTaskList();
+  }
+
+  Future<void> _getNewTask() async {
+    final bool result = await _newTaskController.getNewTask();
+    if (result == false) {
+      snackMassage(true, _newTaskController.errorMessage!);
     }
   }
 
-  Future<void> _getNewTaskList() async {
-    _newTaskList.clear();
-    _getNewTaskListInProgress = true;
-
-    setState(() {});
-    final NetworkResponse response =
-    await NetworkCaller.getRequest(url: Urls.newTaskList);
-    if (response.isSuccess) {
-      final TaskListModel taskListModel =
-      TaskListModel.fromJson(response.responseData);
-      _newTaskList = taskListModel.TaskList ?? [];
-    } else {
-      showSnackBarMessage(context, response.errorMessage, true);
+  Future<void> _getTaskStatus() async {
+    final bool result = await _taskStatusController.getStatusCount();
+    if (result == false) {
+      snackMassage(true, _taskStatusController.errorMessage!);
     }
-    _getNewTaskListInProgress = false;
-    setState(() {});
-  }
-
-  Future<void> _getTaskStatusCount() async {
-    _taskStatusCountList.clear();
-    _getNewTaskListInProgress = true;
-
-    setState(() {});
-    final NetworkResponse response =
-    await NetworkCaller.getRequest(url: Urls.taskStatusCount);
-    if (response.isSuccess) {
-      final TaskStatusCountModel taskStatusCountModel =
-      TaskStatusCountModel.fromJson(response.responseData);
-      _taskStatusCountList = taskStatusCountModel.taskStatusCountList ?? [];
-    } else {
-      showSnackBarMessage(context, response.errorMessage, true);
-    }
-    _getNewTaskListInProgress = false;
-    setState(() {});
   }
 }

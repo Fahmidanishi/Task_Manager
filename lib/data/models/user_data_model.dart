@@ -1,37 +1,34 @@
-class UserModel {
+class UserData {
   String? sId;
   String? email;
   String? firstName;
   String? lastName;
   String? mobile;
   String? password;
-  String? photo;
   String? createdDate;
+  String? photo;
 
+  String get fullName => '${firstName ?? ''} ${lastName ?? ''}';
 
-  String get fullName {
-    return '${firstName ?? ''} ${lastName ?? ''}';
-  }
-
-  UserModel(
+  UserData(
       {this.sId,
         this.email,
         this.firstName,
         this.lastName,
         this.mobile,
         this.password,
-        this.photo,
-        this.createdDate});
+        this.createdDate,
+        this.photo});
 
-  UserModel.fromJson(Map<String, dynamic> json) {
+  UserData.fromJson(Map<String, dynamic> json) {
     sId = json['_id'];
     email = json['email'];
     firstName = json['firstName'];
     lastName = json['lastName'];
     mobile = json['mobile'];
     password = json['password'];
-    photo = json['photo'];
     createdDate = json['createdDate'];
+    photo = json['photo'];
   }
 
   Map<String, dynamic> toJson() {
@@ -42,8 +39,8 @@ class UserModel {
     data['lastName'] = lastName;
     data['mobile'] = mobile;
     data['password'] = password;
-    data['photo'] = photo;
     data['createdDate'] = createdDate;
+    data['photo'] = photo;
     return data;
   }
 }

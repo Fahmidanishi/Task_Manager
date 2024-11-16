@@ -1,66 +1,68 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:get/get.dart';
+import 'package:task_manager/ui/screens/add_new_task_screen.dart';
+import 'package:task_manager/ui/screens/profile_update_screen.dart';
+import 'package:task_manager/ui/screens/sign_in_screen.dart';
+import 'package:task_manager/ui/screens/sign_up_screen.dart';
 import 'package:task_manager/ui/screens/splash_screen.dart';
-import 'ui/utills/app_colors.dart';
+import 'package:task_manager/ui/screens/verify_email_screen.dart';
 
-class TaskManagerApp extends StatefulWidget {
+import 'controller_binder.dart';
+import 'ui/screens/home_screen.dart';
+
+class TaskManagerApp extends StatelessWidget {
   const TaskManagerApp({super.key});
 
-  static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-  @override
-  State<TaskManagerApp> createState() => _TaskManagerAppState();
-}
-
-class _TaskManagerAppState extends State<TaskManagerApp> {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: TaskManagerApp.navigatorKey,
+    return GetMaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorSchemeSeed: AppColors.themeColor,
-        textTheme: const TextTheme(),
-        inputDecorationTheme: _inputDecorationTheme(),
-        elevatedButtonTheme: _elevatedButtonThemeData(),
+        scaffoldBackgroundColor: Colors.grey[300],
+        colorSchemeSeed: Colors.blue,
+        inputDecorationTheme: _buildInputDecorationTheme(),
+        elevatedButtonTheme: _buildElevatedButtonThemeData(),
       ),
-      home: const SplashScreen(),
+      initialBinding: ControllerBinder(),
+      initialRoute: SplashScreen.name,
+      routes: {
+        SplashScreen.name: (context) => const SplashScreen(),
+        SingInScreen.name: (context) => const SingInScreen(),
+        SingUpScreen.name: (context) => const SingUpScreen(),
+        VerityEmailScreen.name: (context) => const VerityEmailScreen(),
+        HomeScreen.name: (context) => const HomeScreen(),
+        ProfileUpdateScreen.name: (context) => const ProfileUpdateScreen(),
+        AddNewScreen.name: (context) => const AddNewScreen(),
+      },
     );
   }
 
-  ElevatedButtonThemeData _elevatedButtonThemeData() {
+  ElevatedButtonThemeData _buildElevatedButtonThemeData() {
     return ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.themeColor,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 10),
-        fixedSize: const Size.fromWidth(double.maxFinite),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        backgroundColor: Colors.grey[600],
+        foregroundColor: Colors.grey[300],
+        fixedSize: const Size(double.maxFinite, 54),
       ),
     );
   }
 
-  InputDecorationTheme _inputDecorationTheme() {
+  InputDecorationTheme _buildInputDecorationTheme() {
     return InputDecorationTheme(
-      fillColor: Colors.white,
-      filled: true,
-      hintStyle: TextStyle(
-        fontWeight: FontWeight.w300,
-      ),
-      border: _inputBorder(),
-      enabledBorder: _inputBorder(),
-      errorBorder: _inputBorder(),
-      focusedBorder: _inputBorder(),
-
+      labelStyle: const TextStyle(color: Colors.grey),
+      border: _buildOutlineInputBorder(),
+      focusedBorder: _buildOutlineInputBorder(),
+      enabledBorder: _buildOutlineInputBorder(),
+      errorBorder: _buildOutlineInputBorder(),
+      focusedErrorBorder: _buildOutlineInputBorder(),
+      disabledBorder: _buildOutlineInputBorder(),
     );
   }
 
-  OutlineInputBorder _inputBorder() {
+  OutlineInputBorder _buildOutlineInputBorder() {
     return OutlineInputBorder(
-      borderSide: BorderSide.none,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: Colors.grey.shade100),
     );
   }
 }

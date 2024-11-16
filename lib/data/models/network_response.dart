@@ -1,12 +1,12 @@
 class NetworkResponse {
-  final bool isSuccess;
   final int statusCode;
-  dynamic responseData;
-  String errorMessage;
+  final bool isSuccess;
+  dynamic responseBody;
+  String errorMassage;
 
   NetworkResponse(
-      {required this.isSuccess,
-      required this.statusCode,
-      this.responseData,
-      this.errorMessage = 'Something went wrong'});
+      {required this.statusCode,
+        required this.isSuccess,
+        this.responseBody,
+        this.errorMassage = 'something went wrong'});
 }
