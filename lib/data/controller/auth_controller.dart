@@ -1,7 +1,7 @@
 import 'dart:convert';
-
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_manager/data/models/user_model.dart';
+
 
 class AuthController {
   static const String _accessTokenKey = 'access-token';
@@ -36,18 +36,20 @@ class AuthController {
     if (userEncodedData == null) {
       return null;
     }
-    UserModel userModel = UserModel.fromJson(jsonDecode(userEncodedData!));
+    UserModel userModel = UserModel.fromJson(jsonDecode(userEncodedData));
     userData = userModel;
-    return UserModel();
+    return userModel;
   }
 
   static bool isLoggedIn() {
     return accessToken != null;
   }
 
-  static Future<void> clearUserData() async {
+  static Future<void> clearAccessToken() async {
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
-    await sharedPreferences.clear();
+    await sharedPreferences.remove(_accessTokenKey);
+    await sharedPreferences.remove(_userDataKey);
     accessToken = null;
+    userData = null;
   }
 }

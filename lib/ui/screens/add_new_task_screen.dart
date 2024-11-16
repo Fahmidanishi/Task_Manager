@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:task_manager/data/models/network_response.dart';
 import 'package:task_manager/data/services/network_caller.dart';
 import 'package:task_manager/data/utils/urls.dart';
-import 'package:task_manager/ui/widgets/centered_circular_progress_indicator.dart';
+import 'package:task_manager/ui/widgets/screen_background.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
-import 'package:task_manager/ui/widgets/tm_app_bar.dart';
 
 class AddNewTaskScreen extends StatefulWidget {
   const AddNewTaskScreen({super.key});
@@ -16,72 +16,57 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
   final TextEditingController _titleTEController = TextEditingController();
   final TextEditingController _descriptionTEController =
   TextEditingController();
-  final GlobalKey<FormState> _formkey = GlobalKey<FormState>();
-  bool _addNewTaskInProgress = false;
-  bool _shouldRefreshPreviousPage = false;
+  final GlobalKey<FormState> _globalKey = GlobalKey<FormState>();
+  bool _inProgress = false;
+  bool _shouldRefresh = false;
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async {
-        // Return the refresh flag when the screen pops
-        Navigator.pop(context, _shouldRefreshPreviousPage);
-        return false;
-      },
+      onWillPop: _onWillPop,  // Handle pop behavior
       child: Scaffold(
-        appBar: const TMAppBar(),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formkey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 42),
-                  Text(
-                    'Add New Task',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
+        body: ScreenBackground(
+          title: _buildTitleSection(),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _globalKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _titleTEController,
+                      decoration: const InputDecoration(labelText: 'title'),
+                      validator: (String? value) {
+                        if (value?.trim().isEmpty == true) {
+                          return 'Enter valid title';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _titleTEController,
-                    decoration: const InputDecoration(
-                      hintText: 'Title',
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _descriptionTEController,
+                      maxLines: 6,
+                      decoration: const InputDecoration(labelText: 'description'),
+                      validator: (String? value) {
+                        if (value?.trim().isEmpty == true) {
+                          return 'Enter a value';
+                        }
+                        return null;
+                      },
                     ),
-                    validator: (String? value) {
-                      if (value?.trim().isEmpty ?? true) {
-                        return 'Enter a value';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _descriptionTEController,
-                    maxLines: 5,
-                    decoration: const InputDecoration(
-                      hintText: 'Description',
+                    const SizedBox(height: 32),
+                    Visibility(
+                      visible: !_inProgress,
+                      replacement: const CircularProgressIndicator(),
+                      child: ElevatedButton(
+                        onPressed: _onTapAddButton,
+                        child: const Text('ADD'),
+                      ),
                     ),
-                    validator: (String? value) {
-                      if (value?.trim().isEmpty ?? true) {
-                        return 'Enter a value';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Visibility(
-                    visible: !_addNewTaskInProgress,
-                    replacement: const CenteredCircularProgressIndicator(),
-                    child: ElevatedButton(
-                      onPressed: _onTapSubmitButton,
-                      child: const Icon(Icons.arrow_circle_right_outlined),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -90,38 +75,67 @@ class _AddNewTaskScreenState extends State<AddNewTaskScreen> {
     );
   }
 
-  void _onTapSubmitButton() {
-    if (_formkey.currentState!.validate()) {
-      _addNewTask();
-    }
+  Widget _buildTitleSection() {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(left: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+          Text(
+            'Add New \nTask!',
+            style: textTheme.displayMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  Future<void> _addNewTask() async {
-    _addNewTaskInProgress = true;
+  void _onTapAddButton() {
+    if (!_globalKey.currentState!.validate()) {
+      return;
+    }
+    _addTask();
+  }
+
+  Future<void> _addTask() async {
+    _inProgress = true;
     setState(() {});
+
     Map<String, dynamic> requestBody = {
-      'title': _titleTEController.text.trim(),
-      'description': _descriptionTEController.text.trim(),
-      'status': 'New',
+      "title": _titleTEController.text.trim(),
+      "description": _descriptionTEController.text.trim(),
+      "status": "New"
     };
-    final response = await NetworkCaller.postRequest(
-        url: Urls.addNewTask, body: requestBody);
 
-    _addNewTaskInProgress = false;
+    final NetworkResponse response = await NetworkCaller.postRequest(
+      url: Urls.createTask,
+      body: requestBody,
+    );
+    _inProgress = false;
     setState(() {});
-
     if (response.isSuccess) {
-      _shouldRefreshPreviousPage = true;
-      _clearTextField();
-      showSnackBarMessage(context, 'New task added!');
+      Navigator.pop(context, _shouldRefresh = true);
+      _clearField();
+      snackBarMessage(context, 'New task added');
     } else {
-      showSnackBarMessage(context, response.errorMessage);
+      snackBarMessage(context, response.errorMessage, true);
     }
   }
 
-  void _clearTextField() {
+  void _clearField() {
     _titleTEController.clear();
     _descriptionTEController.clear();
+  }
+
+  // Handle the back press
+  Future<bool> _onWillPop() async {
+    Navigator.pop(context, _shouldRefresh);  // Pop the screen and pass the result
+    return false;  // Prevent the default back navigation behavior
   }
 
   @override

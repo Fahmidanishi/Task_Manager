@@ -1,23 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:task_manager/ui/controllers/auth_controller.dart';
+import 'package:task_manager/data/controller/auth_controller.dart';
 import 'package:task_manager/ui/screens/profile_screen.dart';
 import 'package:task_manager/ui/screens/sign_in_screen.dart';
-import 'package:task_manager/ui/utills/app_colors.dart';
+import 'package:task_manager/ui/widgets/app_bar_background.dart';
 
 class TMAppBar extends StatelessWidget implements PreferredSizeWidget {
   const TMAppBar({
     super.key,
-   this.isProfileScreenOpen = false,
   });
 
-  final bool isProfileScreenOpen;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if(isProfileScreenOpen) {
-          return;
-        }
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -25,53 +20,58 @@ class TMAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         );
       },
-      child: AppBar(
-        backgroundColor: AppColors.themeColor,
-        title: Row(
-          children: [
-            const CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.white,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AuthController.userData?.fullName ?? '',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    AuthController.userData?.email ?? '',
-                    style: const TextStyle(
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-                onPressed: () async{
-                  await AuthController.clearUserData();
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const SignInScreen()),
-                    (predicate) => false,
-                  );
-                },
-                icon: const Icon(Icons.logout))
-          ],
+      child: AppBarBackground(
+        child: _buildAppBarListTile(context),
+      ),
+    );
+  }
+
+  Widget _buildAppBarListTile(BuildContext context) {
+    String imageUrl = AuthController.userData!.photo ?? '';
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, top: 24),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.grey[300],
+          maxRadius: 32,
+          child: imageUrl.isNotEmpty
+              ? Image.network(imageUrl)
+              : const Icon(
+            Icons.person,
+            color: Colors.grey,
+            size: 32,
+          ),
+        ),
+        title: Text(
+          AuthController.userData?.fullName ?? '',
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          AuthController.userData?.email ?? '',
+          style: const TextStyle(color: Colors.black),
+        ),
+        trailing: IconButton(
+          onPressed: () async {
+            await AuthController.clearAccessToken();
+            Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SingInScreen(),
+                ),
+                    (_) => false);
+          },
+          icon: const Icon(
+            Icons.logout,
+            color: Colors.black,
+          ),
         ),
       ),
     );
   }
 
   @override
-  Size get preferredSize =>
-      Size.fromHeight(kToolbarHeight); // Ensure this matches toolbarHeight.
+  Size get preferredSize => const Size.fromHeight(104);
 }

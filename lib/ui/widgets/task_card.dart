@@ -1,171 +1,213 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:task_manager/data/models/network_response.dart';
 import 'package:task_manager/data/models/task_model.dart';
 import 'package:task_manager/data/services/network_caller.dart';
 import 'package:task_manager/data/utils/urls.dart';
-import 'package:task_manager/ui/utills/app_colors.dart';
-import 'package:task_manager/ui/widgets/centered_circular_progress_indicator.dart';
+import 'package:task_manager/ui/widgets/neu_box.dart';
 import 'package:task_manager/ui/widgets/snack_bar_message.dart';
-import 'package:intl/intl.dart';
 
 class TaskCard extends StatefulWidget {
   const TaskCard({
     super.key,
     required this.taskModel,
-    required this.onRefreshList,
+    required this.onTapRefresh,
   });
 
   final TaskModel taskModel;
-  final VoidCallback onRefreshList;
+  final VoidCallback onTapRefresh;
 
   @override
   State<TaskCard> createState() => _TaskCardState();
 }
 
 class _TaskCardState extends State<TaskCard> {
-  String _selectedStatus = '';
+  String _selectStatus = '';
   bool _changeStatusInProgress = false;
   bool _deleteTaskInProgress = false;
 
   @override
   void initState() {
+    _selectStatus = widget.taskModel.status!;
     super.initState();
-    _selectedStatus = widget.taskModel.status!;
   }
 
   @override
   Widget build(BuildContext context) {
-    final String formattedDate = DateFormat('EEE, M/d/y').format(
-      DateTime.parse(widget.taskModel.createdDate!),
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final String date = DateFormat('EEE, M/ d/ y').format(
+      DateTime.parse(
+        widget.taskModel.createdDate!,
+      ),
     );
-
     return Card(
+      color: Colors.grey[200],
       elevation: 0,
-      color: Colors.white,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.taskModel.title ?? '',
-              style: Theme.of(context).textTheme.titleSmall,
+              style: textTheme.titleMedium,
             ),
+            const SizedBox(height: 6),
             Text(
               widget.taskModel.description ?? '',
+              style: textTheme.bodySmall,
             ),
+            const SizedBox(height: 10),
             Text(
-              'Date: $formattedDate', // Display formatted date here
+              'Date: $date',
+              style: textTheme.labelSmall,
             ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _buildTaskStatusChip(),
-                Wrap(
-                  children: [
-                    Visibility(
-                      visible: !_changeStatusInProgress,
-                      replacement: const CenteredCircularProgressIndicator(),
-                      child: IconButton(
-                        onPressed: _onTapEditButton,
-                        icon: const Icon(Icons.edit),
-                      ),
-                    ),
-                    Visibility(
-                      visible: !_deleteTaskInProgress,
-                      replacement: const CenteredCircularProgressIndicator(),
-                      child: IconButton(
-                        onPressed: _onTapDeleteButton,
-                        icon: const Icon(Icons.delete),
-                      ),
-                    ),
-                  ],
-                ),
+                _buildStatusChip(textTheme),
+                _buildButtonBar(),
               ],
-            ),
+            )
           ],
         ),
       ),
     );
   }
 
-  void _onTapEditButton() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Status'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: ['New', 'Completed', 'Cancelled', 'Progress'].map((status) {
-              return ListTile(
-                onTap: () {
-                  _changeStatus(status);
-                  Navigator.pop(context);
-                },
-                title: Text(status),
-                selected: _selectedStatus == status,
-                trailing: _selectedStatus == status ? const Icon(Icons.check) : null,
-              );
-            }).toList(),
+  Widget _buildStatusChip(TextTheme textTheme) {
+    return NeuBox(
+      child: Chip(
+        label: Text(
+          widget.taskModel.status ?? '',
+          style: textTheme.labelSmall,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        backgroundColor: Colors.grey.shade200,
+        side: BorderSide(
+          color: _getStatusColor(widget.taskModel.status!),
+        ),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(104),
+            bottomRight: Radius.circular(104),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButtonBar() {
+    return Wrap(
+      children: [
+        Visibility(
+          visible: !_changeStatusInProgress,
+          replacement: const CircularProgressIndicator(),
+          child: IconButton(
+            onPressed: () {
+              showDialog(
+                  barrierDismissible: false,
+                  context: context,
+                  builder: (context) {
+                    return _buildAlertDialog();
+                  });
+            },
+            icon: Icon(
+              (Icons.edit_document),
+              color: Colors.blue.shade300,
+              size: 20,
             ),
-          ],
-        );
-      },
+          ),
+        ),
+        Visibility(
+          visible: !_deleteTaskInProgress,
+          replacement: const CircularProgressIndicator(),
+          child: IconButton(
+            onPressed: _deleteTask,
+            icon: const Icon(
+              (Icons.delete_outline),
+              color: Colors.red,
+              size: 22,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildTaskStatusChip() {
-    return Chip(
-      label: Text(
-        widget.taskModel.status!,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+  Widget _buildAlertDialog() {
+    return AlertDialog(
+      title: const Text('Update Task'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: ['New', 'Completed', 'Canceled', 'Progress']
+            .map((e) => ListTile(
+          onTap: () {
+            _updateTask(e);
+            Navigator.pop(context);
+          },
+          title: Text(e),
+          selected: _selectStatus == e,
+          trailing: _selectStatus == e
+              ? const Icon(
+            Icons.check,
+            color: Colors.black,)
+              : null,)).toList(),
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      side: const BorderSide(
-        color: AppColors.themeColor,
-      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('Cancel'),
+        ),
+      ],
     );
   }
 
-  Future<void> _onTapDeleteButton() async {
-    setState(() {
-      _deleteTaskInProgress = true;
-    });
-    final response = await NetworkCaller.getRequest(
-      url: Urls.deleteTask(widget.taskModel.sId!),
-    );
+  Future<void> _updateTask(String newStatus) async {
+    _changeStatusInProgress = true;
+    setState(() {});
+    NetworkResponse response = await NetworkCaller.getRequest(
+        url: Urls.updateTaskStatus(widget.taskModel.sId!, newStatus));
     if (response.isSuccess) {
-      widget.onRefreshList();
+      widget.onTapRefresh();
+      snackBarMessage(context, 'Task Update successfully');
     } else {
-      showSnackBarMessage(context, response.errorMessage);
-    }
-    setState(() {
-      _deleteTaskInProgress = false;
-    });
-  }
-
-  Future<void> _changeStatus(String newStatus) async {
-    setState(() {
-      _changeStatusInProgress = true;
-    });
-    final response = await NetworkCaller.getRequest(
-      url: Urls.changeStatus(widget.taskModel.sId!, newStatus),
-    );
-    if (response.isSuccess) {
-      widget.onRefreshList();
-    } else {
-      showSnackBarMessage(context, response.errorMessage);
-    }
-    setState(() {
       _changeStatusInProgress = false;
-    });
+      setState(() {});
+      snackBarMessage(context, response.errorMessage, true);
+    }
+  }
+
+  Future<void> _deleteTask() async {
+    _deleteTaskInProgress = true;
+    setState(() {});
+    NetworkResponse response = await NetworkCaller.getRequest(
+        url: Urls.deleteTask(widget.taskModel.sId!));
+    if (response.isSuccess) {
+      widget.onTapRefresh();
+      snackBarMessage(context, 'Task delete successfully');
+    } else {
+      _deleteTaskInProgress = false;
+      setState(() {});
+      snackBarMessage(context, response.errorMessage, true);
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'New':
+        return Colors.blue;
+      case 'Completed':
+        return Colors.green;
+      case 'Canceled':
+        return Colors.red;
+      case 'Progress':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
   }
 }

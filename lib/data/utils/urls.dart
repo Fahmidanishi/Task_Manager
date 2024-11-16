@@ -1,18 +1,37 @@
 class Urls {
-  static const String _baseUrl = 'http://35.73.30.144:2005/api/v1';
+  static const String _baseurl = 'http://35.73.30.144:2005/api/v1';
 
+  static const String login = '$_baseurl/Login';
 
-  static const String registration = '$_baseUrl/Registration';
-  static const String login = '$_baseUrl/Login';
-  static const String addNewTask = '$_baseUrl/createTask';
-  static const String newTaskList = '$_baseUrl/listTaskByStatus/New';
-  static const String completedTaskList = '$_baseUrl/listTaskByStatus/Completed';
-  static const String cancelledTaskList = '$_baseUrl/listTaskByStatus/Cancelled';
-  static const String taskStatusCount = '$_baseUrl/taskStatusCount';
-  static const String updateProfile = '$_baseUrl/ProfileUpdate';
-  static const String progressTaskList = '$_baseUrl/listTaskByStatus/Progress';
-  static String changeStatus(String taskId, String status) =>
-      '$_baseUrl/updateTaskStatus/$taskId/$status';
-  static String deleteTask(String taskId) =>
-      '$_baseUrl/deleteTask/$taskId';
+  static const String registration = '$_baseurl/Registration';
+
+  static const String profileUpdate = '$_baseurl/ProfileUpdate';
+
+  static const String createTask = '$_baseurl/createTask';
+
+  static const String newTaskList = '$_baseurl/listTaskByStatus/New';
+
+  static const String completedTaskList =
+      '$_baseurl/listTaskByStatus/Completed';
+
+  static const String canceledTaskList = '$_baseurl/listTaskByStatus/Canceled';
+
+  static const String progressTaskList = '$_baseurl/listTaskByStatus/Progress';
+
+  static const String taskListCount = '$_baseurl/taskStatusCount';
+
+  static const String profileDetails = '$_baseurl/ProfileDetails';
+
+  static String deleteTask(String taskId) => '$_baseurl/deleteTask/$taskId';
+
+  static String updateTaskStatus(String taskId, String status) =>
+      '$_baseurl/updateTaskStatus/$taskId/$status';
+
+  static String recoverVerifyEmail(String email) =>
+      '$_baseurl/RecoverVerifyEmail/$email';
+
+  static String recoverVerifyOtp(String email, String otp) =>
+      '$_baseurl/RecoverVerifyOtp/$email/$otp';
+
+  static const String recoverResetPassword = '$_baseurl/RecoverResetPassword';
 }

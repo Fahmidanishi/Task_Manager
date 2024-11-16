@@ -1,32 +1,32 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:task_manager/data/controller/auth_controller.dart';
-import 'package:task_manager/data/models/login_model.dart';
 import 'package:task_manager/data/models/network_response.dart';
 import 'package:task_manager/data/services/network_caller.dart';
 import 'package:task_manager/data/utils/urls.dart';
-import 'package:task_manager/ui/screens/OTP_email_screen.dart';
 import 'package:task_manager/ui/utills/app_colors.dart';
 import 'package:task_manager/ui/widgets/screen_background.dart';
+import 'package:task_manager/ui/widgets/snack_bar_message.dart';
 
-import 'main_bottom_nav_bar_screen.dart';
-import 'sign_up_screen.dart';
+import 'sign_in_screen.dart';
 
-class SingInScreen extends StatefulWidget {
-  const SingInScreen({super.key});
+class SetPassScreen extends StatefulWidget {
+  const SetPassScreen({super.key, required this.email, required this.otp});
+
+  final String email;
+  final String otp;
 
   @override
-  State<SingInScreen> createState() => _SingInScreenState();
+  State<SetPassScreen> createState() => _SetPassScreenState();
 }
 
-class _SingInScreenState extends State<SingInScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+class _SetPassScreenState extends State<SetPassScreen> {
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+  TextEditingController();
   final GlobalKey<FormState> _globalKey = GlobalKey<FormState>();
 
   bool _obscureText = true;
-
-  bool _inProgress = false;
+  bool _setPasswordInProgress = false;
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +38,9 @@ class _SingInScreenState extends State<SingInScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _buildSingInForm(),
-              TextButton(
-                onPressed: _onTapOTPEmailScreen,
-                child: const Text('Forgot password?'),
-              ),
+              _buildOTPEmailForm(),
               const SizedBox(height: 44),
-              _buildSingUpSection(),
+              _buildHaveAccountSection(),
             ],
           ),
         ),
@@ -60,7 +56,7 @@ class _SingInScreenState extends State<SingInScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Welcome\nBack!',
+            'Set Your\nPassword!',
             style: textTheme.displayMedium?.copyWith(
               fontWeight: FontWeight.w600,
               fontStyle: FontStyle.italic,
@@ -68,7 +64,7 @@ class _SingInScreenState extends State<SingInScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Hey! Good to see you again',
+            'Minimum length password 8 character with Latter and number combination',
             style: textTheme.bodyLarge,
           ),
         ],
@@ -76,40 +72,47 @@ class _SingInScreenState extends State<SingInScreen> {
     );
   }
 
-  Widget _buildSingInForm() {
+  Widget _buildOTPEmailForm() {
     return Form(
       key: _globalKey,
       child: Column(
         children: [
           const SizedBox(height: 44),
           TextFormField(
-            controller: _emailController,
+            controller: _newPasswordController,
             autovalidateMode: AutovalidateMode.onUserInteraction,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              suffixIcon: Icon(Icons.email_outlined),
+            obscureText: _obscureText,
+            decoration: InputDecoration(
+              labelText: 'New password',
+              suffixIcon: IconButton(
+                onPressed: () {
+                  _obscureText = !_obscureText;
+                  setState(() {});
+                },
+                icon: Icon(
+                  _obscureText
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+              ),
             ),
             validator: (String? value) {
               if (value?.isEmpty == true) {
-                return 'Enter valid email';
+                return 'Enter valid password';
               }
-              if (!value!.contains('@')) {
-                return "Enter valid email '@'";
-              }
-              if (!value.contains('.com')) {
-                return "Enter valid email '.com'";
+              if (value!.length < 6) {
+                return 'Enter valid password must 6 character';
               }
               return null;
             },
           ),
           const SizedBox(height: 16),
           TextFormField(
-            controller: _passwordController,
+            controller: _confirmPasswordController,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             obscureText: _obscureText,
             decoration: InputDecoration(
-              labelText: 'Password',
+              labelText: 'Confirm password',
               suffixIcon: IconButton(
                 onPressed: () {
                   _obscureText = !_obscureText;
@@ -134,11 +137,11 @@ class _SingInScreenState extends State<SingInScreen> {
           ),
           const SizedBox(height: 32),
           Visibility(
-            visible: !_inProgress,
+            visible: !_setPasswordInProgress,
             replacement: const CircularProgressIndicator(),
             child: ElevatedButton(
-              onPressed: _onTapSingInButton,
-              child: const Text('SING IN'),
+              onPressed: _onTapConfirmButton,
+              child: const Text('CONFIRM'),
             ),
           ),
         ],
@@ -146,12 +149,12 @@ class _SingInScreenState extends State<SingInScreen> {
     );
   }
 
-  Widget _buildSingUpSection() {
+  Widget _buildHaveAccountSection() {
     return Center(
       child: RichText(
         text: TextSpan(
           style: TextStyle(color: Colors.grey[900]),
-          text: "Don't have an account? ",
+          text: "Have account? ",
           children: [
             TextSpan(
               style: const TextStyle(
@@ -159,8 +162,8 @@ class _SingInScreenState extends State<SingInScreen> {
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
-              text: 'Sing Up',
-              recognizer: TapGestureRecognizer()..onTap = _onTapSingUpScreen,
+              text: 'Sing In',
+              recognizer: TapGestureRecognizer()..onTap = _onTapSingInScreen,
             ),
           ],
         ),
@@ -168,68 +171,51 @@ class _SingInScreenState extends State<SingInScreen> {
     );
   }
 
-  void _onTapSingInButton() {
+  void _onTapConfirmButton() {
     if (!_globalKey.currentState!.validate()) {
       return;
     }
-    _singIn();
+    _setPassword();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SingInScreen(),
+      ),
+    );
   }
 
-  Future<void> _singIn() async {
-    _inProgress = true;
+  Future<void> _setPassword() async {
+    _setPasswordInProgress = true;
     setState(() {});
-
     Map<String, dynamic> requestBody = {
-      'email': _emailController.text.trim(),
-      'password': _passwordController.text,
+      "email": widget.email,
+      "OTP": widget.otp,
+      "password": _confirmPasswordController.text
     };
-
     NetworkResponse response = await NetworkCaller.postRequest(
-      url: Urls.login,
+      url: Urls.recoverResetPassword,
       body: requestBody,
     );
-    _inProgress = false;
+    _setPasswordInProgress = false;
     setState(() {});
     if (response.isSuccess) {
-      LoginModel loginModel = LoginModel.fromJson(response.responseBody);
-      await AuthController.saveAccessToken(loginModel.token!);
-      await AuthController.saveUserData(loginModel.data!);
-      Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const MainButtonNavScreen()),
-              (_) => false);
+      snackBarMessage(context, response.responseBody['data']);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.backgroundColor,
-          content: Text(response.errorMessage),
-        ),
-      );
+      snackBarMessage(context, response.errorMessage, true);
     }
   }
 
-  void _onTapOTPEmailScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const OTPEmailScreen(),
-      ),
-    );
-  }
-
-  void _onTapSingUpScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const SingUpScreen(),
-      ),
-    );
+  void _onTapSingInScreen() {
+    Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const SingInScreen()),
+            (_) => false);
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 }

@@ -1,66 +1,67 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:task_manager/ui/screens/splash_screen.dart';
-import 'ui/utills/app_colors.dart';
+import 'package:task_manager/ui/utills/app_colors.dart';
 
-class TaskManagerApp extends StatefulWidget {
-  const TaskManagerApp({super.key});
+
+class TaskManagerMobileApp extends StatelessWidget {
+  const TaskManagerMobileApp({super.key});
 
   static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
-  State<TaskManagerApp> createState() => _TaskManagerAppState();
-}
-
-class _TaskManagerAppState extends State<TaskManagerApp> {
-  @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: TaskManagerApp.navigatorKey,
-      theme: ThemeData(
-        colorSchemeSeed: AppColors.themeColor,
-        textTheme: const TextTheme(),
-        inputDecorationTheme: _inputDecorationTheme(),
-        elevatedButtonTheme: _elevatedButtonThemeData(),
-      ),
+      navigatorKey: TaskManagerMobileApp.navigatorKey,
+      debugShowCheckedModeBanner: false,
       home: const SplashScreen(),
+      theme: ThemeData(
+        colorSchemeSeed: AppColors.backgroundColor,
+        scaffoldBackgroundColor: AppColors.foregroundColor,
+        navigationBarTheme: _buildNavigationBarThemeData(),
+        inputDecorationTheme: _buildInputDecorationTheme(),
+        elevatedButtonTheme: _buildElevatedButtonThemeData(),
+      ),
     );
   }
 
-  ElevatedButtonThemeData _elevatedButtonThemeData() {
+  NavigationBarThemeData _buildNavigationBarThemeData() {
+    return const NavigationBarThemeData(
+      backgroundColor: Colors.transparent,
+      indicatorColor: AppColors.backgroundColor,
+    );
+  }
+
+  InputDecorationTheme _buildInputDecorationTheme() {
+    return InputDecorationTheme(
+      labelStyle: const TextStyle(
+          color: Colors.grey
+      ),
+      border: _buildOutlineInputBorder(),
+      errorBorder: _buildOutlineInputBorder(),
+      focusedErrorBorder: _buildOutlineInputBorder(),
+      focusedBorder: _buildOutlineInputBorder(),
+      disabledBorder: _buildOutlineInputBorder(),
+      enabledBorder: _buildOutlineInputBorder(),
+    );
+  }
+
+  OutlineInputBorder _buildOutlineInputBorder() {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(
+        color: AppColors.backgroundColor,
+      ),
+    );
+  }
+
+  ElevatedButtonThemeData _buildElevatedButtonThemeData() {
     return ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.themeColor,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 10),
-        fixedSize: const Size.fromWidth(double.maxFinite),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        elevation: 0,
+        foregroundColor: AppColors.foregroundColor,
+        backgroundColor: AppColors.backgroundColor,
+        fixedSize: const Size(double.maxFinite, 56),
       ),
-    );
-  }
-
-  InputDecorationTheme _inputDecorationTheme() {
-    return InputDecorationTheme(
-      fillColor: Colors.white,
-      filled: true,
-      hintStyle: TextStyle(
-        fontWeight: FontWeight.w300,
-      ),
-      border: _inputBorder(),
-      enabledBorder: _inputBorder(),
-      errorBorder: _inputBorder(),
-      focusedBorder: _inputBorder(),
-
-    );
-  }
-
-  OutlineInputBorder _inputBorder() {
-    return OutlineInputBorder(
-      borderSide: BorderSide.none,
-      borderRadius: BorderRadius.circular(8),
     );
   }
 }

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:task_manager/ui/controllers/auth_controller.dart';
+import 'package:task_manager/data/controller/auth_controller.dart';
+import 'package:task_manager/ui/screens/get_started_screen.dart';
 import 'package:task_manager/ui/screens/main_bottom_nav_bar_screen.dart';
-import 'package:task_manager/ui/screens/sign_in_screen.dart';
-import 'package:task_manager/ui/widgets/screen_background.dart';
+import 'package:task_manager/ui/utills/app_colors.dart';
 
-import '../utills/assets_path.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,47 +13,60 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _moveToNextScreen();
-  }
-
-  Future<void> _moveToNextScreen() async {
+  Future<void> _moveNextScreen() async {
     await Future.delayed(const Duration(seconds: 2));
     await AuthController.getAccessToken();
-    await AuthController.getUserData();
-    if (AuthController.isLoggedIn()) {
+    if(AuthController.isLoggedIn()){
       await AuthController.getUserData();
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) => const MainBottomNavBarScreen(),
+          builder: (context) => const MainButtonNavScreen(),
         ),
+            (_) => false,
       );
-    } else {
-      Navigator.pushReplacement(
+    }else {
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) => const SignInScreen(),
+          builder: (context) => const GetStartedScreen(),
         ),
+            (_) => false,
       );
     }
   }
 
+  @override
+  void initState() {
+    _moveNextScreen();
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ScreenBackground(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SvgPicture.asset(
-                AssetsPath.logoSvg,
-                width: 120,
-              )
-            ],
-          ),
+      backgroundColor: AppColors.backgroundColor,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: MediaQuery.sizeOf(context).width / 2,
+              child: Image.asset(
+                'assets/images/task.png',
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Task Manager',
+              style: TextStyle(
+                color: AppColors.foregroundColor,
+                fontSize: 24,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );

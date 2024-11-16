@@ -1,20 +1,27 @@
+
+
 import 'package:task_manager/data/models/user_model.dart';
 
 class LoginModel {
   String? status;
-  List<UserModel>? data;
+  UserModel? data;
   String? token;
 
   LoginModel({this.status, this.data, this.token});
 
   LoginModel.fromJson(Map<String, dynamic> json) {
     status = json['status'];
-    if (json['data'] != null && json['data'] is List) {
-      data = <UserModel>[];
-      json['data'].forEach((v) {
-        data!.add(UserModel.fromJson(v));
-      });
-    }
+    data = json['data'] != null ? UserModel.fromJson(json['data']) : null;
     token = json['token'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['status'] = status;
+    if (this.data != null) {
+      data['data'] = this.data!.toJson();
+    }
+    data['token'] = token;
+    return data;
   }
 }
